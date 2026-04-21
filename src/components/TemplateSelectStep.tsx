@@ -16,7 +16,7 @@ export function TemplateSelectStep({ onSelect }: TemplateSelectStepProps) {
   const [templates, setTemplates] = useState<Template[] | undefined>();
 
   const wa = useWhatsApp();
-  const approved = templates;
+  const approved = templates?.filter((t) => t.status === "APPROVED");
 
   const fetchTemplates = async () => {
     try {

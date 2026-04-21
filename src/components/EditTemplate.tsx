@@ -22,14 +22,11 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [liveValues, setLiveValues] = useState<Record<string, string>>({});
   const wa = useWhatsApp();
+  const [finalParams, setFinalParams] = useState<TemplateParam[]>([]);
 
   useEffect(() => {
     setParams(wa.extractParams(template));
   }, [wa, template]);
-  useEffect(() => {
-    console.log("params:", params);
-    console.log("template components:", template.components);
-  }, [params, template]);
 
   const handleInputChange = (key: string, value: string) => {
     setLiveValues((prev) => ({ ...prev, [key]: value }));
@@ -70,19 +67,42 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
     if (!entries.length) return toast.error("Fields are required");
 
     const updatedParams = [...params];
+
     for (const [key, value] of entries) {
-      const index = Number(key.split("_").pop());
       if (key.startsWith("header_text_")) {
+        const varName = key.replace("header_text_", "");
         const param = updatedParams.find(
-          (p) => p.componentType === "HEADER" && p.index === index,
+          (p) =>
+            p.componentType === "HEADER" &&
+            (p.placeholder === `{{${varName}}}` ||
+              p.placeholder === `{{${varName}}}`),
         );
         if (param) param.value = value as string;
+        else
+          updatedParams.push({
+            componentType: "HEADER",
+            index: updatedParams.filter((p) => p.componentType === "HEADER")
+              .length,
+            placeholder: `{{${varName}}}`,
+            value: value as string,
+          });
       }
+
       if (key.startsWith("body_")) {
+        const varName = key.replace("body_", "");
         const param = updatedParams.find(
-          (p) => p.componentType === "BODY" && p.index === index,
+          (p) =>
+            p.componentType === "BODY" && p.placeholder === `{{${varName}}}`,
         );
         if (param) param.value = value as string;
+        else
+          updatedParams.push({
+            componentType: "BODY",
+            index: updatedParams.filter((p) => p.componentType === "BODY")
+              .length,
+            placeholder: `{{${varName}}}`,
+            value: value as string,
+          });
       }
     }
 
@@ -97,9 +117,11 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
           value: mediaId,
         });
     }
-
-    setParams(updatedParams);
+    setFinalParams(updatedParams);
     setIsReady(true);
+
+    console.log("INITIAL PARAMS", params);
+    console.log("UPDATED PARAMS", updatedParams);
   };
 
   const hasInputs =
@@ -137,7 +159,7 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
               <Button type="submit">Submit</Button>
             </form>
           ) : (
-            <ComposeStep params={params} template={template} />
+            <ComposeStep params={finalParams} template={template} />
           )}
         </div>
         <PreviewCard

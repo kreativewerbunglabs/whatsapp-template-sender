@@ -29,6 +29,11 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
     { number: string; error: string }[]
   >([]);
   const handleSend = async () => {
+    if (recipients.length === 0) {
+      setError("Atleast one number is req");
+      return;
+    }
+
     setError("");
     setSuccess(false);
     setLoading(true);
@@ -38,11 +43,11 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
       for (const number of recipients) {
         try {
           const payload = wa.buildMessagePayload(template, params, number);
+
           await wa.sendMessage(payload);
 
           // 🔥 persist progress
           successTemp.push(number);
-          localStorage.setItem("failed", number);
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Unknown error";
@@ -55,7 +60,6 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
       setSuccessList(successTemp);
       setFailedList(failedTemp);
       setSuccess(true);
-      localStorage.setItem("lastSuccess", JSON.stringify(failedList));
     } catch (err: any) {
       setError(err.message || "Failed to send");
     } finally {

@@ -21,7 +21,6 @@ export function TemplateSelectStep({ onSelect }: TemplateSelectStepProps) {
   const fetchTemplates = async () => {
     try {
       const data = await wa.fetchTemplates();
-      console.log({ data });
       setTemplates(data);
     } catch (error) {
       if (error instanceof Error) {

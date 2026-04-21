@@ -75,6 +75,7 @@ export class WhatsAppService {
   // 🔹 Extract Parameters from Template
   extractParams(template: Template): TemplateParam[] {
     const params: TemplateParam[] = [];
+    const seen = new Set<string>();
 
     for (const comp of template.components) {
       if (!comp.text) continue;
@@ -82,10 +83,19 @@ export class WhatsAppService {
       const matches = comp.text.match(/{{[^}]+}}/g) || [];
 
       matches.forEach((match, i) => {
+        const key = `${comp.type}-${match}`;
+
+        // ✅ prevent duplicates within same component
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        const inner = match.replace(/{{|}}/g, "");
+        const isNumeric = /^\d+$/.test(inner);
+
         params.push({
           componentType: comp.type,
-          index: i,
-          placeholder: match, // e.g. "{{name}}" or "{{1}}"
+          index: isNumeric ? parseInt(inner) - 1 : i,
+          placeholder: match,
           value: "",
         });
       });
@@ -93,7 +103,6 @@ export class WhatsAppService {
 
     return params;
   }
-
   // 🔹 Build Message Payload
   buildMessagePayload(
     template: Template,
@@ -104,6 +113,7 @@ export class WhatsAppService {
 
     for (const comp of template.components) {
       // HEADER
+
       if (comp.type === "HEADER") {
         const headerParams = params
           .filter((p) => p.componentType === "HEADER")
@@ -119,7 +129,7 @@ export class WhatsAppService {
           });
         }
 
-        if (["IMAGE", "VIDEO", "DOCUMENT"].includes(comp?.format ?? "")) {
+        if (["IMAGE", "VIDEO", "DOCUMENT"].includes(comp?.format!)) {
           const media = headerParams[0]?.value;
           if (!media) continue;
 
@@ -143,15 +153,14 @@ export class WhatsAppService {
           .filter((p) => p.componentType === "BODY")
           .sort((a, b) => a.index - b.index);
 
-        if (bodyParams.length > 0) {
-          components.push({
-            type: "body",
-            parameters: bodyParams.map((p) => ({
-              type: "text",
-              text: p.value,
-            })),
-          });
-        }
+        // ✅ always push body, even if no params
+        components.push({
+          type: "body",
+          parameters: bodyParams.map((p) => ({
+            type: "text",
+            text: p.value,
+          })),
+        });
       }
     }
 
@@ -162,7 +171,7 @@ export class WhatsAppService {
       template: {
         name: template.name,
         language: { code: template.language },
-        components,
+        components: components.length > 0 ? components : undefined,
       },
     };
   }
@@ -178,14 +187,15 @@ export class WhatsAppService {
       body: JSON.stringify(payload),
     });
 
+    const json = await res.json();
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
       throw new Error(
-        err.error?.message || `Failed to send message (${res.status})`,
+        json.error?.message || `Failed to send message (${res.status})`,
       );
     }
 
-    return res.json();
+    return json;
   }
 
   // 🔹 Upload Media

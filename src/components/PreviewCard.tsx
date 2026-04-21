@@ -10,8 +10,10 @@ const PreviewCard = ({
   previewUrl: string;
   template: Template;
 }) => {
+
+    console.log(template.components);
   return (
-    <Card className="bg-muted/30 border border-border/50 shadow-sm max-h-102 flex flex-col">
+    <Card className="bg-muted/30 border border-border/50 shadow-sm max-h-110 flex flex-col">
       <CardHeader className="pb-2 shrink-0">
         <CardTitle className="font-medium text-muted-foreground">
           Live Preview
@@ -58,7 +60,7 @@ const PreviewCard = ({
                 <div
                   key={i}
                   className="text-center text-sm text-primary font-medium py-2 border-t"
-                >
+                >   
                   {btn.text}
                 </div>
               )),

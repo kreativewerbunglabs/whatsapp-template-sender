@@ -1,9 +1,6 @@
 import { useState } from "react";
-
 import type { Template, TemplateParam } from "../lib/whatsapp";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import {
   Card,
   CardContent,
@@ -21,25 +18,22 @@ interface ComposeStepProps {
   params: TemplateParam[];
 }
 
-export function ComposeStep({
-  template,
-  params: initialParams,
-}: ComposeStepProps) {
-  const [params, setParams] = useState<TemplateParam[]>(initialParams);
+export function ComposeStep({ template, params }: ComposeStepProps) {
   const [recipients, setRecipients] = useState(["+918957379014"]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const wa = useWhatsApp();
-  const updateParam = (idx: number, value: string) => {
-    setParams((prev) => prev.map((p, i) => (i === idx ? { ...p, value } : p)));
-  };
-  const failedList: { number: string; error: string }[] = [];
-
+  const [successList, setSuccessList] = useState<string[]>([]);
+  const [failedList, setFailedList] = useState<
+    { number: string; error: string }[]
+  >([]);
   const handleSend = async () => {
     setError("");
     setSuccess(false);
     setLoading(true);
+    const successTemp: string[] = [];
+    const failedTemp: { number: string; error: string }[] = [];
     try {
       for (const number of recipients) {
         try {
@@ -47,61 +41,102 @@ export function ComposeStep({
           await wa.sendMessage(payload);
 
           // 🔥 persist progress
+          successTemp.push(number);
           localStorage.setItem("failed", number);
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Unknown error";
 
-          console.log("FAILED:", number, message);
-
-          failedList.push({ number, error: message });
-          localStorage.setItem("lastSuccess", JSON.stringify(failedList));
-          // ❗ DO NOT break
+          failedTemp.push({ number, error: message });
         }
 
         await new Promise((r) => setTimeout(r, 400));
       }
+      setSuccessList(successTemp);
+      setFailedList(failedTemp);
       setSuccess(true);
+      localStorage.setItem("lastSuccess", JSON.stringify(failedList));
     } catch (err: any) {
       setError(err.message || "Failed to send");
     } finally {
       setLoading(false);
     }
   };
+  const downloadFailedCSV = () => {
+    const rows = [
+      ["Number", "Error"],
+      ...failedList.map((f) => [f.number, f.error]),
+    ];
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+
+    const link = document.createElement("a");
+    link.href = encodeURI(csvContent);
+    link.download = "failed_numbers.csv";
+    link.click();
+  };
 
   if (success) {
     return (
       <Card className="max-w-lg mx-auto shadow-xl border border-border/50 backdrop-blur-sm">
-        <CardContent className="py-12 px-8 text-center space-y-6">
+        <CardContent className="py-4 px-8 text-center space-y-6">
+          {/* ICON */}
           <div className="flex justify-center">
             <div className="p-4 rounded-full bg-green-500/10">
               <CheckCircle2 className="w-12 h-12 text-green-500" />
             </div>
           </div>
 
+          {/* TITLE */}
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold tracking-tight">
-              Message Sent
+              Message Process Completed
             </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+
+            <p className="text-sm text-muted-foreground">
               Template{" "}
               <span className="font-medium text-foreground">
                 {template.name}
               </span>{" "}
-              has been delivered successfully.
+              processed for all recipients.
             </p>
           </div>
 
-          <Button
-            variant="outline"
-            className="mt-4 px-6"
-            onClick={() => {
-              setSuccess(false);
-              setRecipients([]);
-            }}
-          >
-            Send Another
-          </Button>
+          {/* STATS */}
+          <div className="flex justify-center gap-6 text-sm">
+            <div className="text-green-600 font-medium">
+              ✅ {successList.length} Success
+            </div>
+            <div className="text-red-500 font-medium">
+              ❌ {failedList.length} Failed
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            {failedList.length > 0 && (
+              <Button
+                variant="destructive"
+                className="flex-1 h-10"
+                onClick={downloadFailedCSV}
+              >
+                Download Failed CSV
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              className="flex-1 h-10"
+              onClick={() => {
+                setSuccess(false);
+                setRecipients([]);
+                setSuccessList([]);
+                setFailedList([]);
+              }}
+            >
+              Send Another
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -112,7 +147,7 @@ export function ComposeStep({
       <div className="w-full">
         {/* Edit fields */}
         <Card className="shadow-lg border border-border/50 w-full">
-          <CardHeader className="pb-4">
+          <CardHeader className="">
             <CardTitle className="text-lg font-semibold">
               Edit Parameters
             </CardTitle>
@@ -124,22 +159,7 @@ export function ComposeStep({
           </CardHeader>
 
           <CardContent className="space-y-5">
-            {params.map((p, i) => (
-              <div key={i} className="space-y-2">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {p.componentType} — {p.placeholder}
-                </Label>
-
-                <Input
-                  className="focus-visible:ring-2 focus-visible:ring-primary/40"
-                  placeholder={`Enter value for ${p.placeholder}`}
-                  value={p.value}
-                  onChange={(e) => updateParam(i, e.target.value)}
-                />
-              </div>
-            ))}
-
-            <Separator className="my-4" />
+            <Separator className="my-2" />
 
             <RecipientInput onChange={setRecipients} />
 

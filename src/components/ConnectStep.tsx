@@ -21,10 +21,10 @@ export function ConnectStep({
   setWa: (wa: WhatsAppService) => void;
 }) {
   const [token, setToken] = useState(
-    "",
+    "EAANPMUIBQmoBRazETyHFSkdmrRK5bp4v0FXQaSZB9PjydpO67eaXJRxgjOpQzxM5TfcslhCfMT2xqae31hzCuN0RMthTwo09xeM3F4pHjJJDHeIf6b8qnpMHmKqNOPrXOgN9hJ7UNaVMZA0lztIia5swiOiKFbVNFsbs6pdPLdNFmawnPtWy6LhCh9ZCQZDZD",
   );
-  const [wabaId, setWabaId] = useState("");
-  const [phoneNumberId, setPhoneNumberId] = useState("");
+  const [wabaId, setWabaId] = useState("2379289982557132");
+  const [phoneNumberId, setPhoneNumberId] = useState("1090215210840685");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,7 +38,7 @@ export function ConnectStep({
         wabaId: wabaId.trim(),
         phoneNumberId: phoneNumberId.trim(),
       });
-
+      
       setWa(instance);
       setStep(1);
     } catch (err: any) {

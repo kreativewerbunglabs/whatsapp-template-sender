@@ -1,19 +1,20 @@
 import { Check } from "lucide-react";
 
-const steps = ["Connect", "Select Template", "Compose & Send"];
+const steps = ["Connect", "Select Template", "Edit Template & Send"];
 
 interface StepIndicatorProps {
   currentStep: number;
+  setStep:(num:number)=>void
 }
 
-export function StepIndicator({ currentStep }: StepIndicatorProps) {
+export function StepIndicator({ currentStep,setStep }: StepIndicatorProps) {
   return (
-    <div className="flex items-center justify-center gap-2 mb-8">
+    <div className="flex items-center justify-center gap-2 mb-8 w-full">
       {steps.map((label, i) => {
         const done = i < currentStep;
         const active = i === currentStep;
         return (
-          <div key={i} className="flex items-center gap-2">
+          <div key={i} onClick={()=>setStep(i)} className="flex items-center gap-2">
             <div className="flex items-center gap-2">
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${

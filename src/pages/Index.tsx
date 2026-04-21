@@ -3,35 +3,24 @@ import { MessageSquare } from "lucide-react";
 import { StepIndicator } from "../components/StepIndicator";
 import { ConnectStep } from "../components/ConnectStep";
 import { TemplateSelectStep } from "../components/TemplateSelectStep";
-import { ComposeStep } from "../components/ComposeStep";
-import { fetchTemplates, extractParams } from "../lib/whatsapp";
-import type { Template, TemplateParam } from "../lib/whatsapp";
+import type { Template, WhatsAppService } from "../lib/whatsapp";
+import EditTemplate from "../components/EditTemplate";
+import { WhatsAppContext } from "../context/WhatsApp";
 
 const Index = () => {
   const [step, setStep] = useState(0);
-  const [token, setToken] = useState("");
-  const [phoneNumberId, setPhoneNumberId] = useState("");
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [params, setParams] = useState<TemplateParam[]>([]);
-
-  const handleConnect = useCallback(async (t: string, wabaId: string, pid: string) => {
-    const data = await fetchTemplates(t, wabaId);
-    setToken(t);
-    setPhoneNumberId(pid);
-    setTemplates(data);
-    setStep(1);
-  }, []);
+  const [wa, setWa] = useState<WhatsAppService | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null,
+  );
 
   const handleSelectTemplate = useCallback((template: Template) => {
     setSelectedTemplate(template);
-    setParams(extractParams(template));
     setStep(2);
   }, []);
 
   const handleBackToTemplates = useCallback(() => {
     setSelectedTemplate(null);
-    setParams([]);
     setStep(1);
   }, []);
 
@@ -43,27 +32,33 @@ const Index = () => {
             <MessageSquare className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight">WhatsApp Template Sender</h1>
-            <p className="text-xs text-muted-foreground">Send template messages via the Business API</p>
+            <h1 className="font-bold text-lg leading-tight">
+              WhatsApp Template Sender
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Send template messages via the Business API
+            </p>
           </div>
         </div>
       </header>
+      <WhatsAppContext.Provider value={wa}>
+        <main className="container max-w-3xl mx-auto py-8 px-4">
+          <StepIndicator setStep={setStep} currentStep={step} />
 
-      <main className="container max-w-3xl mx-auto py-8 px-4">
-        <StepIndicator currentStep={step} />
-
-        {step === 0 && <ConnectStep onConnect={handleConnect} />}
-        {step === 1 && <TemplateSelectStep templates={templates} onSelect={handleSelectTemplate} />}
-        {step === 2 && selectedTemplate && (
-          <ComposeStep
-            template={selectedTemplate}
-            params={params}
-            token={token}
-            phoneNumberId={phoneNumberId}
-            onBack={handleBackToTemplates}
-          />
-        )}
-      </main>
+          <div className="md:w-full max-md:max-w-xl mx-auto">
+            {step === 0 && <ConnectStep setStep={setStep} setWa={setWa} />}
+            {step === 1 && (
+              <TemplateSelectStep onSelect={handleSelectTemplate} />
+            )}
+            {step === 2 && selectedTemplate && (
+              <EditTemplate
+                template={selectedTemplate}
+                onBack={handleBackToTemplates}
+              />
+            )}
+          </div>
+        </main>
+      </WhatsAppContext.Provider>
     </div>
   );
 };

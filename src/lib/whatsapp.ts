@@ -4,7 +4,12 @@ export interface TemplateComponent {
   type: "HEADER" | "BODY" | "FOOTER" | "BUTTONS";
   format?: "TEXT" | "IMAGE" | "VIDEO" | "DOCUMENT";
   text?: string;
-  buttons?: Array<{ type: string; text: string; url?: string; phone_number?: string }>;
+  buttons?: Array<{
+    type: string;
+    text: string;
+    url?: string;
+    phone_number?: string;
+  }>;
   example?: {
     header_text?: string[];
     body_text?: string[][];
@@ -28,87 +33,185 @@ export interface TemplateParam {
   value: string;
 }
 
-export async function fetchTemplates(token: string, wabaId: string): Promise<Template[]> {
-  const res = await fetch(
-    `${BASE_URL}/${wabaId}/message_templates?limit=100`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Failed to fetch templates (${res.status})`);
-  }
-  const data = await res.json();
-  return data.data || [];
-}
+export class WhatsAppService {
+  private token: string;
+  private wabaId: string;
+  private phoneNumberId: string;
 
-export function extractParams(template: Template): TemplateParam[] {
-  const params: TemplateParam[] = [];
-  for (const comp of template.components) {
-    if (!comp.text) continue;
-    const regex = /\{\{(\d+)\}\}/g;
-    let match;
-    while ((match = regex.exec(comp.text)) !== null) {
-      params.push({
-        componentType: comp.type,
-        index: parseInt(match[1]),
-        placeholder: match[0],
-        value: "",
+  constructor({
+    token,
+    wabaId,
+    phoneNumberId,
+  }: {
+    token: string;
+    wabaId: string;
+    phoneNumberId: string;
+  }) {
+    this.token = token;
+    this.wabaId = wabaId;
+    this.phoneNumberId = phoneNumberId;
+  }
+
+  // 🔹 Fetch Templates
+  async fetchTemplates(): Promise<Template[]> {
+    const res = await fetch(
+      `${BASE_URL}/${this.wabaId}/message_templates?limit=100`,
+      {
+        headers: { Authorization: `Bearer ${this.token}` },
+      },
+    );
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err.error?.message || `Failed to fetch templates (${res.status})`,
+      );
+    }
+
+    const data = await res.json();
+    return data.data || [];
+  }
+
+  // 🔹 Extract Parameters from Template
+  extractParams(template: Template): TemplateParam[] {
+    const params: TemplateParam[] = [];
+
+    for (const comp of template.components) {
+      if (!comp.text) continue;
+
+      const matches = comp.text.match(/{{[^}]+}}/g) || [];
+
+      matches.forEach((match, i) => {
+        params.push({
+          componentType: comp.type,
+          index: i,
+          placeholder: match, // e.g. "{{name}}" or "{{1}}"
+          value: "",
+        });
       });
     }
+
+    return params;
   }
-  return params;
-}
 
-export function buildMessagePayload(
-  template: Template,
-  params: TemplateParam[],
-  recipientPhone: string
-) {
-  const components: any[] = [];
+  // 🔹 Build Message Payload
+  buildMessagePayload(
+    template: Template,
+    params: TemplateParam[],
+    recipientPhone: string,
+  ) {
+    const components: any[] = [];
 
-  const grouped = params.reduce((acc, p) => {
-    if (!acc[p.componentType]) acc[p.componentType] = [];
-    acc[p.componentType].push(p);
-    return acc;
-  }, {} as Record<string, TemplateParam[]>);
+    for (const comp of template.components) {
+      // HEADER
+      if (comp.type === "HEADER") {
+        const headerParams = params
+          .filter((p) => p.componentType === "HEADER")
+          .sort((a, b) => a.index - b.index);
 
-  for (const [type, ps] of Object.entries(grouped)) {
-    components.push({
-      type: type.toLowerCase(),
-      parameters: ps
-        .sort((a, b) => a.index - b.index)
-        .map((p) => ({ type: "text", text: p.value })),
+        if (comp.format === "TEXT") {
+          components.push({
+            type: "header",
+            parameters: headerParams.map((p) => ({
+              type: "text",
+              text: p.value,
+            })),
+          });
+        }
+
+        if (["IMAGE", "VIDEO", "DOCUMENT"].includes(comp?.format ?? "")) {
+          const media = headerParams[0]?.value;
+          if (!media) continue;
+
+          const type = comp?.format?.toLowerCase() ?? "";
+
+          components.push({
+            type: "header",
+            parameters: [
+              {
+                type,
+                [type]: { id: media },
+              },
+            ],
+          });
+        }
+      }
+
+      // BODY
+      if (comp.type === "BODY") {
+        const bodyParams = params
+          .filter((p) => p.componentType === "BODY")
+          .sort((a, b) => a.index - b.index);
+
+        if (bodyParams.length > 0) {
+          components.push({
+            type: "body",
+            parameters: bodyParams.map((p) => ({
+              type: "text",
+              text: p.value,
+            })),
+          });
+        }
+      }
+    }
+
+    return {
+      messaging_product: "whatsapp",
+      to: recipientPhone.replace(/\D/g, ""),
+      type: "template",
+      template: {
+        name: template.name,
+        language: { code: template.language },
+        components,
+      },
+    };
+  }
+
+  // 🔹 Send Message
+  async sendMessage(payload: any) {
+    const res = await fetch(`${BASE_URL}/${this.phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
     });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err.error?.message || `Failed to send message (${res.status})`,
+      );
+    }
+
+    return res.json();
   }
 
-  return {
-    messaging_product: "whatsapp",
-    to: recipientPhone.replace(/\D/g, ""),
-    type: "template",
-    template: {
-      name: template.name,
-      language: { code: template.language },
-      components: components.length > 0 ? components : undefined,
-    },
-  };
-}
+  // 🔹 Upload Media
+  async uploadFile(file: File) {
+    const formData = new FormData();
 
-export async function sendMessage(
-  token: string,
-  phoneNumberId: string,
-  payload: any
-) {
-  const res = await fetch(`${BASE_URL}/${phoneNumberId}/messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Failed to send message (${res.status})`);
+    formData.append("messaging_product", "whatsapp");
+    formData.append("file", file);
+    formData.append("type", file.type);
+
+    const res = await fetch(`${BASE_URL}/${this.phoneNumberId}/media`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error("Upload error:", err);
+      throw new Error(
+        err.error?.message || `Failed to upload file (${res.status})`,
+      );
+    }
+
+    return res.json();
   }
-  return res.json();
 }

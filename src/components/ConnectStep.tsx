@@ -2,17 +2,29 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Loader2, ArrowRight, KeyRound, Phone } from "lucide-react";
+import { WhatsAppService } from "../lib/whatsapp";
 
-interface ConnectStepProps {
-  onConnect: (token: string, wabaId: string, phoneNumberId: string) => Promise<void>;
-}
 
-export function ConnectStep({ onConnect }: ConnectStepProps) {
-  const [token, setToken] = useState("");
-  const [wabaId, setWabaId] = useState("");
-  const [phoneNumberId, setPhoneNumberId] = useState("");
+export function ConnectStep({
+  setStep,
+  setWa,
+}: {
+  setStep: (num: number) => void;
+  setWa: (wa: WhatsAppService) => void;
+}) {
+  const [token, setToken] = useState(
+    "EAANPMUIBQmoBRazETyHFSkdmrRK5bp4v0FXQaSZB9PjydpO67eaXJRxgjOpQzxM5TfcslhCfMT2xqae31hzCuN0RMthTwo09xeM3F4pHjJJDHeIf6b8qnpMHmKqNOPrXOgN9hJ7UNaVMZA0lztIia5swiOiKFbVNFsbs6pdPLdNFmawnPtWy6LhCh9ZCQZDZD",
+  );
+  const [wabaId, setWabaId] = useState("2379289982557132");
+  const [phoneNumberId, setPhoneNumberId] = useState("1090215210840685");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,7 +33,14 @@ export function ConnectStep({ onConnect }: ConnectStepProps) {
     setError("");
     setLoading(true);
     try {
-      await onConnect(token.trim(), wabaId.trim(), phoneNumberId.trim());
+      const instance = new WhatsAppService({
+        token: token.trim(),
+        wabaId: wabaId.trim(),
+        phoneNumberId: phoneNumberId.trim(),
+      });
+      
+      setWa(instance);
+      setStep(1);
     } catch (err: any) {
       setError(err.message || "Failed to connect");
     } finally {
@@ -90,7 +109,11 @@ export function ConnectStep({ onConnect }: ConnectStepProps) {
               {error}
             </p>
           )}
-          <Button type="submit" className="w-full" disabled={loading || !token || !wabaId || !phoneNumberId}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || !token || !wabaId || !phoneNumberId}
+          >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
             ) : (

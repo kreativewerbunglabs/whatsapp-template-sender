@@ -29,6 +29,7 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
     { number: string; error: string }[]
   >([]);
   const handleSend = async () => {
+    console.log(recipients);
     if (recipients.length === 0) {
       setError("Atleast one number is req");
       return;
@@ -59,6 +60,7 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
       }
       setSuccessList(successTemp);
       setFailedList(failedTemp);
+      setRecipients([]);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || "Failed to send");
@@ -83,7 +85,7 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
 
   if (success) {
     return (
-      <Card className="max-w-lg mx-auto shadow-xl border border-border/50 backdrop-blur-sm">
+      <Card className="max-w-lg mx-auto h-125 shadow-xl border flex items-center justify-center border-border/50 backdrop-blur-sm">
         <CardContent className="py-4 px-8 text-center space-y-6">
           {/* ICON */}
           <div className="flex justify-center">
@@ -151,14 +153,14 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
       <div className="w-full">
         {/* Edit fields */}
         <Card className="shadow-lg border border-border/50 w-full">
-          <CardHeader className="">
+          <CardHeader>
             <CardTitle className="text-lg font-semibold">
-              Edit Parameters
+              Add Recipients
             </CardTitle>
+
             <CardDescription className="text-sm">
-              {params.length === 0
-                ? "No editable fields available"
-                : "Fill in the template variables"}
+              Enter phone numbers manually or upload a CSV/XLSX file. Press
+              Enter to add multiple numbers.
             </CardDescription>
           </CardHeader>
 

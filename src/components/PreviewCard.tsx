@@ -11,67 +11,74 @@ const PreviewCard = ({
   template: Template;
 }) => {
   return (
-    <Card className="bg-muted/30 border border-border/50 shadow-sm max-h-110 flex flex-col">
-      <CardHeader className="pb-2 shrink-0">
-        <CardTitle className="font-medium text-muted-foreground">
-          Live Preview
+    <Card className="bg-[#efe7de] dark:bg-zinc-950 pt-0 border-none shadow-inner min-h-125 flex flex-col overflow-hidden">
+      <CardHeader className="bg-white/80 backdrop-blur-md border-b py-3 shrink-0">
+        <CardTitle className="text-xs uppercase tracking-widest font-bold text-muted-foreground">
+          Preview
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="flex-1 overflow-y-auto px-3 pb-3 no-scrollbar">
-        <div className="rounded-2xl bg-white dark:bg-zinc-900 p-3 shadow-md space-y-3 border max-w-sm mx-auto">
-          {/* IMAGE HEADER */}
-          {preview.HEADER_IMAGE && previewUrl && (
-            <div className="overflow-hidden rounded-xl">
-              <img
-                src={previewUrl}
-                alt="preview"
-                className="w-full h-32 object-cover"
-              />
+      <CardContent className="flex-1 p-4 flex flex-col justify-start">
+        {/* THE BUBBLE */}
+        <div className="relative rounded-2xl rounded-tl-none bg-white dark:bg-zinc-900 p-2 shadow-sm border border-black/5 max-w-[85%] animate-in fade-in slide-in-from-bottom-2">
+          {/* WHATSAPP BUBBLE TAIL */}
+          <div className="absolute top-0 -left-2 w-0 h-0 border-t-10 border-t-white dark:border-t-zinc-900 border-l-10 border-l-transparent" />
+
+          {/* MEDIA AREA */}
+          {(preview.HEADER_IMAGE || preview.HEADER_VIDEO) && previewUrl && (
+            <div className="mb-2 overflow-hidden rounded-lg bg-muted">
+              {preview.HEADER_IMAGE ? (
+                <img
+                  src={previewUrl}
+                  className="w-full aspect-video object-cover"
+                  alt="preview"
+                />
+              ) : (
+                <video src={previewUrl} className="w-full" />
+              )}
             </div>
           )}
 
-          {/* VIDEO HEADER */}
-          {preview.HEADER_VIDEO && previewUrl && (
-            <video src={previewUrl} controls className="w-full rounded-xl" />
-          )}
-
-          {/* HEADER */}
-          {preview.HEADER && (
-            <p className="font-semibold text-sm text-foreground wrap-break-word">
-              {preview.HEADER}
-            </p>
-          )}
-
-          {/* BODY */}
-          {preview.BODY && (
-            <p className="text-sm whitespace-pre-wrap leading-relaxed">
-              {preview.BODY}
-            </p>
-          )}
-
-          {/* BUTTONS */}
-          {template.components
-            .filter((c) => c.type === "BUTTONS" && c.buttons)
-            .flatMap((c) =>
-              (c.buttons || []).map((btn, i) => (
-                <div
-                  key={i}
-                  className="text-center text-sm text-primary font-medium py-2 border-t"
-                >
-                  {btn.text}
-                </div>
-              )),
+          <div className="px-1 space-y-1">
+            {preview.HEADER && (
+              <p className="font-bold text-[13px] text-foreground">
+                {preview.HEADER}
+              </p>
             )}
 
-          {/* FOOTER */}
-          {preview.FOOTER && (
-            <p className="text-xs text-muted-foreground">{preview.FOOTER}</p>
-          )}
+            {preview.BODY && (
+              <p className="text-[13px] text-zinc-800 dark:text-zinc-200 leading-snug">
+                {preview.BODY}
+              </p>
+            )}
 
-          {/* TIMESTAMP */}
-          <div className="flex justify-end">
-            <span className="text-[10px] text-muted-foreground">just now</span>
+            {preview.FOOTER && (
+              <p className="text-[11px] text-muted-foreground/70">
+                {preview.FOOTER}
+              </p>
+            )}
+
+            <div className="flex justify-end mt-1">
+              <span className="text-[10px] text-muted-foreground">
+                11:44 AM
+              </span>
+            </div>
+          </div>
+
+          {/* BUTTONS */}
+          <div className=" divide-y">
+            {template.components
+              .filter((c) => c.type === "BUTTONS" && c.buttons)
+              .flatMap((c) =>
+                (c.buttons || []).map((btn, i) => (
+                  <div
+                    key={i}
+                    className="py-2.5 mt-2 -mx-2 border-t text-center text-[13px] text-[#00a884] font-semibold active:bg-zinc-100 transition-colors"
+                  >
+                    {btn.text}
+                  </div>
+                )),
+              )}
           </div>
         </div>
       </CardContent>

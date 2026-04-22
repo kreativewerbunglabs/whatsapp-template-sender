@@ -13,9 +13,10 @@ import PreviewCard from "./PreviewCard";
 interface ComposeStepProps {
   template: Template;
   onBack: () => void;
+ 
 }
 
-const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
+const EditTemplate = ({ template, onBack,  }: ComposeStepProps) => {
   const [params, setParams] = useState<TemplateParam[]>([]);
   const [mediaId, setMediaId] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -25,7 +26,9 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
   const [finalParams, setFinalParams] = useState<TemplateParam[]>([]);
 
   useEffect(() => {
-    setParams(wa.extractParams(template));
+    if (wa) {
+      setParams(wa.extractParams(template));
+    }
   }, [wa, template]);
 
   const handleInputChange = (key: string, value: string) => {
@@ -119,9 +122,6 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
     }
     setFinalParams(updatedParams);
     setIsReady(true);
-
-    console.log("INITIAL PARAMS", params);
-    console.log("UPDATED PARAMS", updatedParams);
   };
 
   const hasInputs =
@@ -132,19 +132,41 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
         ["IMAGE", "VIDEO", "DOCUMENT"].includes(c.format ?? ""),
     );
 
+  const hasMediaInput = template.components.some(
+    (c) =>
+      c.type === "HEADER" &&
+      ["IMAGE", "VIDEO", "DOCUMENT"].includes(c.format ?? ""),
+  );
+  const isSubmitDisabled = hasMediaInput && !previewUrl;
+
   return (
-    <div className="flex flex-col items-start gap-4">
-      <div>
-        <h2 className="text-2xl capitalize font-semibold">{template.name}</h2>
-        <div className="flex gap-2 mt-1">
-          <Badge variant="secondary">{template.language}</Badge>
-          <Badge variant="outline" className="capitalize">
-            {template.category}
-          </Badge>
+    <div className="flex flex-col items-start gap-4 relative">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 w-full px-1">
+        <div className="space-y-1.5 text-center sm:text-left">
+          {/* TITLE: Responsive sizing from text-xl to text-2xl */}
+          <h2 className="text-xl sm:text-2xl capitalize font-bold tracking-tight text-foreground">
+            {template.name}
+          </h2>
+
+          {/* BADGES: Flex-wrap ensures they don't break the layout on tiny screens */}
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+            <Badge
+              variant="secondary"
+              className="px-2 py-0.5 text-[10px] sm:text-xs font-medium uppercase tracking-wider bg-primary/10 text-primary border-none"
+            >
+              {template.language}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="px-2 py-0.5 text-[10px] sm:text-xs font-medium capitalize border-muted-foreground/20 text-muted-foreground"
+            >
+              {template.category}
+            </Badge>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-stretch w-full md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-[1.2fr_0.8fr] gap-6 w-full items-start h-fit px-2  overflow-y-auto py-2 no-scrollbar">
         <div className="w-full">
           {!isReady && hasInputs ? (
             <form onSubmit={onSubmit} className="space-y-4">
@@ -156,7 +178,9 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
                   onChange: handleInputChange,
                 }),
               )}
-              <Button type="submit">Submit</Button>
+              <Button type="submit" disabled={isSubmitDisabled}>
+                Submit
+              </Button>
             </form>
           ) : (
             <ComposeStep params={finalParams} template={template} />
@@ -190,9 +214,7 @@ const renderComponent = ({
   setPreviewUrl: (url: string) => void;
   onChange: (key: string, value: string) => void;
 }) => {
-  const extractVariables = (
-    text: string, // Matches both {{1}} and {{name}}
-  ) => text.match(/{{[^}]+}}/g) || [];
+  const extractVariables = (text: string) => text.match(/{{[^}]+}}/g) || [];
   if (item.type === "HEADER") {
     if (item.format === "TEXT") {
       return extractVariables(item.text ?? "").map((variable) => {

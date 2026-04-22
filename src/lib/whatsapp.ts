@@ -131,10 +131,18 @@ export class WhatsAppService {
         if (comp.format === "TEXT") {
           components.push({
             type: "header",
-            parameters: headerParams.map((p) => ({
-              type: "text",
-              text: p.value,
-            })),
+            parameters: headerParams.map((p) => {
+              const isNamed = isNaN(
+                Number(p.placeholder.replace(/{{|}}/g, "")),
+              );
+              return {
+                type: "text",
+                ...(isNamed && {
+                  parameter_name: p.placeholder.replace(/{{|}}/g, ""),
+                }),
+                text: p.value,
+              };
+            }),
           });
         }
 
@@ -167,6 +175,7 @@ export class WhatsAppService {
           type: "body",
           parameters: bodyParams.map((p) => ({
             type: "text",
+            parameter_name: p.placeholder.replace(/{{|}}/g, ""),
             text: p.value,
           })),
         });

@@ -1,5 +1,24 @@
 import type { Template } from "../lib/whatsapp";
-import { Check, ImageIcon } from "lucide-react";
+import {
+  Check,
+  ExternalLink,
+  ImageIcon,
+  Phone,
+  MessageCircle,
+} from "lucide-react";
+
+const getIcon = (type: string) => {
+  switch (type) {
+    case "PHONE_NUMBER":
+      return <Phone className="w-4 h-4" />;
+    case "URL":
+      return <ExternalLink className="w-4 h-4" />;
+    case "QUICK_REPLY":
+      return <MessageCircle className="w-4 h-4" />;
+    default:
+      return null;
+  }
+};
 
 const PreviewCard = ({
   preview,
@@ -19,7 +38,7 @@ const PreviewCard = ({
   const hasMedia = hasMediaSlot && previewUrl;
 
   return (
-    <div className="rounded-xl overflow-hidden border bg-[#e5ddd5] dark:bg-zinc-900 shadow-sm">
+    <div className="rounded-xl overflow-hidden border bg-[#e5ddd5]  shadow-sm">
       {/* WHATSAPP-LIKE HEADER */}
       <div className="bg-[#075e54] dark:bg-zinc-950 px-3 py-2.5 flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">
@@ -125,15 +144,21 @@ const PreviewCard = ({
 
             {/* BUTTONS */}
             {buttons.length > 0 && (
-              <div className="mt-1 -mx-1.5 -mb-1.5 border-t border-black/5 dark:border-white/5">
+              <div className="mt-1 -mx-1.5 -mb-1.5 border-t rounded-lg border-black/5 dark:border-white/5">
                 {buttons.map((btn, i) => (
                   <div
                     key={i}
-                    className={`py-2.5 px-3 text-center text-[13px] text-[#00a884] font-medium hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors cursor-pointer ${
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 text-sm text-green-600 font-medium  transition-colors cursor-pointer ${
                       i > 0 ? "border-t border-black/5 dark:border-white/5" : ""
                     }`}
                   >
-                    {btn.text}
+                    {/* ICON */}
+                    <span className="opacity-100 text-green-600">
+                      {getIcon(btn.type)}
+                    </span>
+
+                    {/* TEXT */}
+                    <span>{btn.text}</span>
                   </div>
                 ))}
               </div>

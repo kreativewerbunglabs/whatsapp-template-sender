@@ -24,6 +24,7 @@ interface ComposeStepProps {
 }
 
 const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
+  
   const [params, setParams] = useState<TemplateParam[]>([]);
   const [mediaId, setMediaId] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -114,7 +115,7 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
     setFinalParams(updatedParams);
     setIsReady(true);
   };
-
+ 
   const isSubmitDisabled = hasMediaInput && !previewUrl;
 
   return (

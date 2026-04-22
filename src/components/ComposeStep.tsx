@@ -19,7 +19,7 @@ interface ComposeStepProps {
 }
 
 export function ComposeStep({ template, params }: ComposeStepProps) {
-  const [recipients, setRecipients] = useState(["+918957379014"]);
+  const [recipients, setRecipients] = useState([""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);

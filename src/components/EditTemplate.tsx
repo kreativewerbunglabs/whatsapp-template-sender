@@ -13,10 +13,9 @@ import PreviewCard from "./PreviewCard";
 interface ComposeStepProps {
   template: Template;
   onBack: () => void;
- 
 }
 
-const EditTemplate = ({ template, onBack,  }: ComposeStepProps) => {
+const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
   const [params, setParams] = useState<TemplateParam[]>([]);
   const [mediaId, setMediaId] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -225,6 +224,7 @@ const renderComponent = ({
             name={`header_text_${varName}`}
             placeholder={varName}
             onChange={(e) => onChange(`header_text_${varName}`, e.target.value)}
+            required
           />
         );
       });

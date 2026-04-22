@@ -47,7 +47,7 @@ const PreviewCard = ({
             )}
 
             {preview.BODY && (
-              <p className="text-[13px] text-zinc-800 dark:text-zinc-200 leading-snug">
+              <p className="text-[13px] text-zinc-800 whitespace-break-spaces dark:text-zinc-200 leading-snug">
                 {preview.BODY}
               </p>
             )}

@@ -16,6 +16,7 @@ interface ComposeStepProps {
 }
 
 const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
+  console.log({template});
   const [params, setParams] = useState<TemplateParam[]>([]);
   const [mediaId, setMediaId] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -33,7 +34,13 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
   const handleInputChange = (key: string, value: string) => {
     setLiveValues((prev) => ({ ...prev, [key]: value }));
   };
-
+  const hasInputs =
+    params.length > 0 ||
+    template.components.some(
+      (c) =>
+        c.type === "HEADER" &&
+        ["IMAGE", "VIDEO", "DOCUMENT"].includes(c.format ?? ""),
+    );
   const preview = React.useMemo(() => {
     const result: any = {};
 
@@ -122,14 +129,6 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
     setFinalParams(updatedParams);
     setIsReady(true);
   };
-
-  const hasInputs =
-    params.length > 0 ||
-    template.components.some(
-      (c) =>
-        c.type === "HEADER" &&
-        ["IMAGE", "VIDEO", "DOCUMENT"].includes(c.format ?? ""),
-    );
 
   const hasMediaInput = template.components.some(
     (c) =>
@@ -248,8 +247,9 @@ const renderComponent = ({
         <Input
           key={`body-${varName}`}
           name={`body_${varName}`}
-          placeholder={varName} // shows "name", "order_id" etc
+          placeholder={varName} 
           onChange={(e) => onChange(`body_${varName}`, e.target.value)}
+          required
         />
       );
     });

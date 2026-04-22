@@ -19,7 +19,7 @@ interface ComposeStepProps {
 }
 
 export function ComposeStep({ template, params }: ComposeStepProps) {
-  const [recipients, setRecipients] = useState([""]);
+  const [recipients, setRecipients] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -29,7 +29,6 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
     { number: string; error: string }[]
   >([]);
   const handleSend = async () => {
-    console.log(recipients);
     if (recipients.length === 0) {
       setError("Atleast one number is req");
       return;

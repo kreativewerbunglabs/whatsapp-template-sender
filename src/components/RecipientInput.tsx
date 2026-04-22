@@ -32,6 +32,7 @@ export function RecipientInput({
   const normalize = (num: string) => num.replace(/\D/g, "");
 
   const addNumbers = (raw: string, clearInput = false) => {
+    if (raw.length === 0) return;
     const split = raw
       .split(/[\n, ]+/)
       .map(normalize)

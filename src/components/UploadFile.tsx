@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { Input } from "./ui/input";
-import { Loader2 } from "lucide-react";
 import { useWhatsApp } from "../context/WhatsApp";
 
 export function UploadFile({
   name,
   onChange,
-  setPreviewUrl
+  setPreviewUrl,
 }: {
   name: string;
   onChange: (value: string) => void; // returns mediaId
-  setPreviewUrl:(url:string)=>void
+  setPreviewUrl: (url: string) => void;
 }) {
   const wa = useWhatsApp();
   const [loading, setLoading] = useState(false);
@@ -27,7 +26,7 @@ export function UploadFile({
     setError("");
 
     try {
-      const res = await wa.uploadFile(file);
+      const res = await wa?.uploadFile(file);
 
       // WhatsApp returns { id: "MEDIA_ID" }
       const id = res.id;
@@ -42,27 +41,47 @@ export function UploadFile({
   };
 
   return (
-    <div className="space-y-2">
-      <Input
-        name={name}
-        type="file"
-        accept="image/*"
-        required
-        onChange={handleFileChange}
-      />
+    <div className="space-y-3">
+      {/* UPLOAD BOX */}
+      <label className="flex flex-col items-center justify-center w-full border-2 border-dashed rounded-xl p-4 cursor-pointer hover:bg-muted/50 transition">
+        <span className="text-sm font-medium text-muted-foreground">
+          Click to upload image
+        </span>
+        <span className="text-xs text-muted-foreground">PNG, JPG, WEBP</span>
 
+        <Input
+          name={name}
+          type="file"
+          accept="image/*"
+          required
+          onChange={handleFileChange}
+          className="hidden"
+        />
+      </label>
+
+      {/* LOADING STATE */}
       {loading && (
-        <div className="flex items-center gap-2 text-sm">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Uploading...
+        <div className="flex items-center justify-between text-xs bg-blue-50 text-blue-700 px-3 py-2 rounded-md">
+          <span className="truncate">Uploading ...</span>
         </div>
       )}
 
-      {mediaId && (
-        <p className="text-xs text-green-600">Uploaded ✓ ID: {mediaId}</p>
+      {/* SUCCESS STATE */}
+      {mediaId && !loading && (
+        <div className="flex items-center justify-between text-xs bg-green-50 text-green-700 px-3 py-2 rounded-md">
+          <span className="truncate">Uploaded successfully</span>
+          <span className="font-mono text-[10px] opacity-70">
+            {mediaId.slice(0, 8)}...
+          </span>
+        </div>
       )}
 
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {/* ERROR STATE */}
+      {error && (
+        <div className="text-xs bg-red-50 text-red-600 px-3 py-2 rounded-md">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

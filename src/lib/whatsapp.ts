@@ -75,33 +75,42 @@ export class WhatsAppService {
   // 🔹 Extract Parameters from Template
   extractParams(template: Template): TemplateParam[] {
     const params: TemplateParam[] = [];
-    const seen = new Set<string>();
 
     for (const comp of template.components) {
       if (!comp.text) continue;
 
       const matches = comp.text.match(/{{[^}]+}}/g) || [];
 
-      matches.forEach((match, i) => {
-        const key = `${comp.type}-${match}`;
+      // 👇 maintain order per component
+      const localMap = new Map<string, number>();
+      let counter = 0;
 
-        // ✅ prevent duplicates within same component
-        if (seen.has(key)) return;
-        seen.add(key);
-
+      matches.forEach((match) => {
         const inner = match.replace(/{{|}}/g, "");
         const isNumeric = /^\d+$/.test(inner);
 
+        let index: number;
+
+        if (isNumeric) {
+          index = parseInt(inner) - 1;
+        } else {
+          // 👇 assign stable index for named variables
+          if (!localMap.has(inner)) {
+            localMap.set(inner, counter++);
+          }
+          index = localMap.get(inner)!;
+        }
+
         params.push({
           componentType: comp.type,
-          index: isNumeric ? parseInt(inner) - 1 : i,
+          index,
           placeholder: match,
           value: "",
         });
       });
     }
 
-    return params;
+    return params.sort((a, b) => a.index - b.index);
   }
   // 🔹 Build Message Payload
   buildMessagePayload(
@@ -178,24 +187,41 @@ export class WhatsAppService {
 
   // 🔹 Send Message
   async sendMessage(payload: any) {
-    const res = await fetch(`${BASE_URL}/${this.phoneNumberId}/messages`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch(`${BASE_URL}/${this.phoneNumberId}/messages`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-    const json = await res.json();
+      let json: any = {};
+      try {
+        json = await res.json();
+      } catch {
+        // sometimes response is empty / not JSON
+      }
+      if (!res.ok) {
+        throw new Error(
+          json?.error?.message || `Request failed with status ${res.status}`,
+        );
+      }
 
-    if (!res.ok) {
-      throw new Error(
-        json.error?.message || `Failed to send message (${res.status})`,
-      );
+      return json;
+    } catch (err: any) {
+      if (err?.message?.includes("Failed to fetch")) {
+        throw new Error("No internet connection. Please check your network.");
+      }
+
+      if (err?.name === "TypeError") {
+        throw new Error("Network error. Unable to reach server.");
+      }
+
+      // ✅ fallback
+      throw new Error(err?.message || "Unexpected error occurred");
     }
-
-    return json;
   }
 
   // 🔹 Upload Media

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Button } from "./ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -18,8 +18,10 @@ import {
   Users,
   Upload,
   Trash2,
+  FileSpreadsheet,
+  Plus,
+
 } from "lucide-react";
-import { Separator } from "./ui/separator";
 
 export function RecipientInput({
   onChange,
@@ -28,6 +30,7 @@ export function RecipientInput({
 }) {
   const [manual, setManual] = useState("");
   const [numbers, setNumbers] = useState<string[]>([]);
+  const [fileName, setFileName] = useState<string | null>(null);
 
   const normalize = (num: string) => num.replace(/\D/g, "");
 
@@ -38,7 +41,6 @@ export function RecipientInput({
       .map(normalize)
       .filter(Boolean);
     if (!split.length) return;
-
     const merged = Array.from(new Set([...numbers, ...split]));
     setNumbers(merged);
     onChange(merged);
@@ -61,117 +63,125 @@ export function RecipientInput({
       .map((row) => row[0])
       .filter(Boolean)
       .map((num) => String(num).replace(/\D/g, ""));
-
-    setNumbers(extracted);
-    onChange(extracted);
+    const merged = Array.from(new Set([...numbers, ...extracted]));
+    setNumbers(merged);
+    setFileName(file.name);
+    onChange(merged);
   };
 
+  const removeOne = (num: string) => {
+    const filtered = numbers.filter((n) => n !== num);
+    setNumbers(filtered);
+    onChange(filtered);
+  };
+
+  const clearAll = () => {
+    setNumbers([]);
+    setFileName(null);
+    onChange([]);
+  };
+
+
+
   return (
-    <div className="w-full space-y-6">
-      {/* SECTION 1: MANUAL ENTRY */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
-            Enter Numbers
-          </Label>
-        </div>
+    <div className="space-y-4">
+      {/* TABBED INPUT */}
+      <Tabs defaultValue="manual" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full h-9">
+          <TabsTrigger value="manual" className="text-xs gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> Manual
+          </TabsTrigger>
+          <TabsTrigger value="file" className="text-xs gap-1.5">
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Import file
+          </TabsTrigger>
+        </TabsList>
 
-        <div className="relative group">
-          <Input
-            className="pr-16 py-6 text-sm bg-muted/30 border-dashed focus-visible:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
-            placeholder="919876543210, 918888..."
-            value={manual}
-            onChange={(e) => setManual(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:block">
-            <kbd className="text-[10px] border px-1.5 py-0.5 rounded bg-background font-sans text-muted-foreground opacity-60">
-              Enter
-            </kbd>
+        <TabsContent value="manual" className="mt-3 space-y-2">
+          <div className="relative">
+            <Input
+              className="pr-14 h-11 text-sm font-mono tracking-tight"
+              placeholder="Enter Recipients"
+              value={manual}
+              onChange={(e) => setManual(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              {manual ? (
+                <button
+                  onClick={() => addNumbers(manual, true)}
+                  className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  Add
+                </button>
+              ) : (
+                <kbd className="text-[10px] border px-1.5 py-0.5 rounded bg-muted font-sans text-muted-foreground">
+                  Enter
+                </kbd>
+              )}
+            </div>
           </div>
-        </div>
+          <p className="text-[10px] text-muted-foreground/70">
+            Separate multiple numbers with commas or new lines · International
+            format
+          </p>
+        </TabsContent>
 
-        {/* RECIPIENT SUMMARY BAR */}
-      </div>
-
-      {/* VISUAL DIVIDER */}
-      <div className="relative flex items-center py-2">
-        <Separator className="grow" />
-        <span className="absolute left-1/2 -translate-x-1/2 bg-background px-4 text-[10px] font-black text-muted-foreground/40 tracking-tighter">
-          OR
-        </span>
-      </div>
-
-      {/* SECTION 2: FILE UPLOAD */}
-      <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs  font-bold uppercase tracking-widest text-primary/70">
-            Bulk Import
-          </h4>
-          <InfoCsvDialog />
-        </div>
-
-        <div className="space-y-3">
-          <Button
-            variant="outline"
-            className="w-full border-primary/20 hover:bg-primary/10 hover:border-primary/40 bg-background h-14 group transition-all rounded-xl"
-            asChild
+        <TabsContent value="file" className="mt-3 space-y-2">
+          <Label
+            htmlFor="csv-xlsx-file"
+            className="flex flex-col items-center justify-center gap-2 h-24 rounded-lg border-2 border-dashed border-border hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer group"
           >
-            <Label
-              htmlFor=".xlsx-.csv-file"
-              className="cursor-pointer flex items-center justify-center gap-3 w-full"
-            >
-              <Upload className="size-4 group-hover:-translate-y-0.5 transition-transform text-primary" />
-              <span className="font-medium">Upload CSV or Excel</span>
-            </Label>
-          </Button>
+            <Upload className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:-translate-y-0.5 transition-all" />
+            <div className="text-center">
+              <p className="text-xs font-medium">
+                {fileName ? fileName : "Drop or click to upload"}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                .csv, .xlsx, .xls — first column only
+              </p>
+            </div>
+          </Label>
           <Input
             type="file"
-            accept=".xlsx,.csv"
+            accept=".xlsx,.csv,.xls"
             className="hidden"
-            id=".xlsx-.csv-file"
+            id="csv-xlsx-file"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) handleFile(file);
             }}
           />
+          <div className="flex justify-end">
+            <InfoCsvDialog />
+          </div>
+        </TabsContent>
+      </Tabs>
 
-          <p className="text-[10px] text-center text-muted-foreground/50 font-medium">
-            Supported: .csv, .xlsx, .xls
-          </p>
-        </div>
-      </div>
+      {/* RECIPIENTS PREVIEW */}
       {numbers.length > 0 && (
-        <div className="flex items-center justify-between bg-primary/5 border border-primary/10 rounded-xl p-3 sm:p-4 animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-3">
-            <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Users className="size-4 text-primary" />
+        <div className="rounded-lg border bg-muted/30 overflow-hidden animate-in fade-in slide-in-from-top-1">
+          <div className="flex items-center justify-between px-3 py-2 border-b bg-background/50">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+                <Users className="w-3 h-3 text-primary" />
+              </div>
+              <span className="text-xs font-semibold">
+                {numbers.length}{" "}
+                {numbers.length === 1 ? "recipient" : "recipients"}
+              </span>
             </div>
-            <div className="flex flex-col">
-              <p className="text-sm font-semibold leading-none mb-1">
-                {numbers.length} Recipients
-              </p>
-              <RecipientsDialog
-                numbers={numbers}
-                onRemove={(num) => {
-                  const filtered = numbers.filter((n) => n !== num);
-                  setNumbers(filtered);
-                  onChange(filtered);
-                }}
-              />
+            <div className="flex items-center gap-1">
+              <RecipientsDialog numbers={numbers} onRemove={removeOne} />
+              <button
+                onClick={clearAll}
+                className="text-[11px] text-muted-foreground hover:text-destructive transition-colors p-1"
+                title="Clear all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 text-destructive hover:bg-destructive/10 shrink-0"
-            onClick={() => {
-              setNumbers([]);
-              onChange([]);
-            }}
-          >
-            <Trash2 className="size-4" />
-          </Button>
+         
         </div>
       )}
     </div>
@@ -186,86 +196,69 @@ function RecipientsDialog({
   onRemove: (num: string) => void;
 }) {
   const [search, setSearch] = useState("");
-
-  const filtered = useMemo(() => {
-    return numbers.filter((n) => n.includes(search));
-  }, [numbers, search]);
+  const filtered = useMemo(
+    () => numbers.filter((n) => n.includes(search)),
+    [numbers, search],
+  );
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        {/* Updated trigger to look more like a status badge */}
-
-        <span className="text-muted-foreground ml-1 hover:underline text-xs">
-          View
-        </span>
+        <button className="text-[11px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1">
+          View all
+        </button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-md p-0 overflow-hidden rounded-2xl gap-0">
-        <DialogHeader className="p-6 pb-4 border-b">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-semibold flex items-center gap-2">
-              Recipients
-              <span className="bg-muted px-2 py-0.5 rounded-full text-[11px] text-muted-foreground">
-                {numbers.length}
-              </span>
-            </DialogTitle>
-          </div>
+      <DialogContent className="max-w-md p-0 overflow-hidden gap-0">
+        <DialogHeader className="p-4 border-b">
+          <DialogTitle className="text-sm font-semibold flex items-center gap-2">
+            All recipients
+            <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] text-muted-foreground font-mono">
+              {numbers.length}
+            </span>
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="p-4 space-y-4">
-          {/* 🔍 SEARCH BAR - Styled to feel native */}
+        <div className="p-3 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
-              placeholder="Search by number..."
+              placeholder="Search numbers"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
+              className="pl-8 h-9 text-xs"
             />
           </div>
 
-          {/* LIST AREA */}
-          <div className="max-h-84 overflow-y-auto no-scrollbar rounded-xl border bg-muted/20">
+          <div className="max-h-80 overflow-y-auto rounded-md border">
             {filtered.length === 0 ? (
-              <div className="py-12 flex flex-col items-center justify-center text-muted-foreground">
-                <Search className="size-8 opacity-20 mb-2" />
-                <p className="text-sm">No numbers found</p>
+              <div className="py-10 flex flex-col items-center justify-center text-muted-foreground">
+                <Search className="w-6 h-6 opacity-20 mb-2" />
+                <p className="text-xs">No numbers found</p>
               </div>
             ) : (
               <div className="divide-y">
                 {filtered.map((num) => (
                   <div
                     key={num}
-                    className="flex items-center justify-between px-4 py-3 group hover:bg-background transition-colors"
+                    className="flex items-center justify-between px-3 py-2 group hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <User className="size-5 text-muted-foreground" />
-
-                      <span className="text-sm font-mono tracking-tight">
-                        {num}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-xs font-mono">{num}</span>
                     </div>
-
                     <button
-                      className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-all"
                       title="Remove"
                       onClick={() => onRemove(num)}
                     >
-                      <UserMinus className="size-4" />
+                      <UserMinus className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        </div>
-
-        {/* Footer info */}
-        <div className="bg-muted/30 p-3 text-center border-t">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-            End of list
-          </p>
         </div>
       </DialogContent>
     </Dialog>
@@ -276,50 +269,46 @@ function InfoCsvDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <button className="text-muted-foreground hover:text-primary transition-colors p-1">
-          <Info className="size-5" />
+        <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+          <Info className="w-3 h-3" />
+          Format help
         </button>
       </DialogTrigger>
 
-      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-sm rounded-3xl p-6">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle className="text-base font-bold">
-            CSV/Excel Format
+          <DialogTitle className="text-sm font-semibold">
+            File format
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 mt-2">
-          <div className="rounded-xl border bg-card overflow-hidden">
-            <div className="bg-muted px-3 py-2 border-b text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
-              Sample Layout (Column A)
+        <div className="space-y-3 mt-1">
+          <div className="rounded-md border overflow-hidden">
+            <div className="bg-muted px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Column A
             </div>
-            <div className="p-4 font-mono text-xs space-y-2 bg-muted/10">
-              <div className="text-primary/80">919876543210</div>
-              <div className="text-primary/80">918888777666</div>
-              <div className="text-muted-foreground/30 italic text-[10px]">
-                ...only first column
+            <div className="p-3 font-mono text-xs space-y-1 bg-background">
+              <div>919876543210</div>
+              <div>918888777666</div>
+              <div className="text-muted-foreground/40 italic text-[10px]">
+                only first column is read
               </div>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-1.5">
             {[
-              "Numbers only (no spaces/symbols)",
-              "International format (e.g., 91...)",
+              "Numbers only — no spaces or symbols",
+              "International format with country code",
+              "Duplicates will be removed automatically",
             ].map((text, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <div className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+              <div key={i} className="flex items-start gap-2">
+                <div className="w-1 h-1 rounded-full bg-primary mt-1.5 shrink-0" />
                 <span className="text-xs text-muted-foreground leading-relaxed">
                   {text}
                 </span>
               </div>
             ))}
-          </div>
-
-          <div className="pt-4 border-t">
-            <p className="text-[10px] text-center text-muted-foreground/60 font-medium">
-              Accepts .csv, .xlsx, .xls
-            </p>
           </div>
         </div>
       </DialogContent>

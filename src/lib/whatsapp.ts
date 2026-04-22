@@ -173,11 +173,16 @@ export class WhatsAppService {
         // ✅ always push body, even if no params
         components.push({
           type: "body",
-          parameters: bodyParams.map((p) => ({
-            type: "text",
-            parameter_name: p.placeholder.replace(/{{|}}/g, ""),
-            text: p.value,
-          })),
+          parameters: bodyParams.map((p) => {
+            const isNamed = isNaN(Number(p.placeholder.replace(/{{|}}/g, "")));
+            return {
+              type: "text",
+              ...(isNamed && {
+                parameter_name: p.placeholder.replace(/{{|}}/g, ""),
+              }),
+              text: p.value,
+            };
+          }),
         });
       }
     }

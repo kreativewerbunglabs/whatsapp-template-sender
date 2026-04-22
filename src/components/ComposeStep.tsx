@@ -45,25 +45,35 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
     const failedTemp: { number: string; error: string }[] = [];
 
     try {
-      for (let i = 0; i < recipients.length; i++) {
-        const number = recipients[i];
-        try {
-          const payload = wa?.buildMessagePayload(template, params, number);
-          await wa?.sendMessage(payload);
-          successTemp.push(number);
-        } catch (err) {
-          const message = err instanceof Error ? err.message : "Unknown error";
-         
-          failedTemp.push({ number, error: message });
-        }
-        setProgress(Math.round(((i + 1) / recipients.length) * 100));
-        await new Promise((r) => setTimeout(r, 400));
+      const BATCH_SIZE = 10;
+      const DELAY_BETWEEN_BATCHES = 800;
+
+      for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+        const batch = recipients.slice(i, i + BATCH_SIZE);
+
+        await Promise.allSettled(
+          batch.map(async (number) => {
+            try {
+              const payload = wa.buildMessagePayload(template, params, number);
+              await wa.sendMessage(payload);
+              successTemp.push(number);
+            } catch (err) {
+              const message =
+                err instanceof Error ? err.message : "Unknown error";
+              failedTemp.push({ number, error: message });
+            }
+          }),
+        );
+
+        setProgress(Math.round(((i + batch.length) / recipients.length) * 100));
+
+        // delay between batches
+        await new Promise((r) => setTimeout(r, DELAY_BETWEEN_BATCHES));
       }
       setSuccessList(successTemp);
       setFailedList(failedTemp);
       setRecipients([]);
       setSuccess(true);
-    
     } catch (err: any) {
       setError(err.message || "Failed to send");
     } finally {
@@ -71,33 +81,33 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
     }
   };
 
- const downloadFailedCSV = () => {
-  const escapeCSV = (value: string) => {
-    if (!value) return "";
-    return `"${value.replace(/"/g, '""')}"`;
+  const downloadFailedCSV = () => {
+    const escapeCSV = (value: string) => {
+      if (!value) return "";
+      return `"${value.replace(/"/g, '""')}"`;
+    };
+
+    const rows = [
+      ["Number", "Error"],
+      ...failedList.map((f) => [f.number, f.error]),
+    ];
+
+    const csv = rows
+      .map((row) => row.map((cell) => escapeCSV(cell)).join(","))
+      .join("\n");
+
+    // ✅ Use Blob instead of data URI
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "failed_numbers.csv";
+    link.click();
+
+    URL.revokeObjectURL(url);
   };
-
-  const rows = [
-    ["Number", "Error"],
-    ...failedList.map((f) => [f.number, f.error]),
-  ];
-
-  const csv = rows
-    .map((row) => row.map((cell) => escapeCSV(cell)).join(","))
-    .join("\n");
-
-  // ✅ Use Blob instead of data URI
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = "failed_numbers.csv";
-  link.click();
-
-  URL.revokeObjectURL(url);
-};
 
   if (success) {
     const total = successList.length + failedList.length;

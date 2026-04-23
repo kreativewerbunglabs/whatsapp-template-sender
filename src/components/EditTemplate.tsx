@@ -24,7 +24,7 @@ interface ComposeStepProps {
 }
 
 const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
-  console.log(template);
+ 
 
   const [params, setParams] = useState<TemplateParam[]>([]);
   const [mediaId, setMediaId] = useState<string | null>(null);
@@ -114,7 +114,8 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
         });
     }
     const flowTokenEntry = entries.find(([key]) => key === "flow_token");
-    const GeneratedflowToken = flowTokenEntry?.[0] as string | undefined;
+    
+    const GeneratedflowToken = flowTokenEntry?.[1] as string | undefined;
     setFinalParams(updatedParams);
     setFlowToken(GeneratedflowToken);
     setIsReady(true);
@@ -343,9 +344,7 @@ const ComponentSection = ({
     );
   }
 
-  if (
-    item.type === "BUTTONS"
-  ) {
+  if (item.type === "BUTTONS") {
     return (
       <div className="space-y-1.5">
         <Label className="text-[11px] text-muted-foreground">Flow Token</Label>

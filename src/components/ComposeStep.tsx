@@ -16,9 +16,10 @@ import { RecipientInput } from "./RecipientInput";
 interface ComposeStepProps {
   template: Template;
   params: TemplateParam[];
+  flowToken?:string
 }
 
-export function ComposeStep({ template, params }: ComposeStepProps) {
+export function ComposeStep({ template, params,flowToken  }: ComposeStepProps) {
   const [recipients, setRecipients] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,7 +55,7 @@ export function ComposeStep({ template, params }: ComposeStepProps) {
         await Promise.allSettled(
           batch.map(async (number) => {
             try {
-              const payload = wa.buildMessagePayload(template, params, number);
+              const payload = wa.buildMessagePayload(template, params, number,flowToken );
               await wa.sendMessage(payload);
               successTemp.push(number);
             } catch (err) {

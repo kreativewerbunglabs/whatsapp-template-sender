@@ -77,37 +77,50 @@ export class WhatsAppService {
     const params: TemplateParam[] = [];
 
     for (const comp of template.components) {
-      if (!comp.text) continue;
+      // 🔹 EXISTING TEXT PARAM EXTRACTION (unchanged)
+      if (comp.text) {
+        const matches = comp.text.match(/{{[^}]+}}/g) || [];
 
-      const matches = comp.text.match(/{{[^}]+}}/g) || [];
+        const localMap = new Map<string, number>();
+        let counter = 0;
 
-      // 👇 maintain order per component
-      const localMap = new Map<string, number>();
-      let counter = 0;
+        matches.forEach((match) => {
+          const inner = match.replace(/{{|}}/g, "");
+          const isNumeric = /^\d+$/.test(inner);
 
-      matches.forEach((match) => {
-        const inner = match.replace(/{{|}}/g, "");
-        const isNumeric = /^\d+$/.test(inner);
+          let index: number;
 
-        let index: number;
-
-        if (isNumeric) {
-          index = parseInt(inner) - 1;
-        } else {
-          // 👇 assign stable index for named variables
-          if (!localMap.has(inner)) {
-            localMap.set(inner, counter++);
+          if (isNumeric) {
+            index = parseInt(inner) - 1;
+          } else {
+            if (!localMap.has(inner)) {
+              localMap.set(inner, counter++);
+            }
+            index = localMap.get(inner)!;
           }
-          index = localMap.get(inner)!;
-        }
 
+          params.push({
+            componentType: comp.type,
+            index,
+            placeholder: match,
+            value: "",
+          });
+        });
+      }
+
+      // 🔹 NEW: FLOW SUPPORT (this is the fix)
+      if (
+        comp.type === "BUTTONS" &&
+        Array.isArray(comp.buttons) &&
+        comp.buttons.some((b: any) => b.type === "FLOW")
+      ) {
         params.push({
-          componentType: comp.type,
-          index,
-          placeholder: match,
+          componentType: "FLOW",
+          index: 0,
+          placeholder: "flow_token",
           value: "",
         });
-      });
+      }
     }
 
     return params.sort((a, b) => a.index - b.index);
@@ -117,6 +130,7 @@ export class WhatsAppService {
     template: Template,
     params: TemplateParam[],
     recipientPhone: string,
+    flowToken?: string,
   ) {
     const components: any[] = [];
 
@@ -183,6 +197,25 @@ export class WhatsAppService {
               text: p.value,
             };
           }),
+        });
+      }
+      if (comp.type === "BUTTONS") {
+        comp.buttons?.forEach((btn: any, i: number) => {
+          if (btn.type === "FLOW") {
+            components.push({
+              type: "button",
+              sub_type: "flow",
+              index: String(i),
+              parameters: [
+                {
+                  type: "action",
+                  action: {
+                    flow_token: flowToken || "",
+                  },
+                },
+              ],
+            });
+          }
         });
       }
     }

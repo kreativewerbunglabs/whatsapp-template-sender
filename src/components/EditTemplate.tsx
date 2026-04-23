@@ -24,9 +24,11 @@ interface ComposeStepProps {
 }
 
 const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
-  
+  console.log(template);
+
   const [params, setParams] = useState<TemplateParam[]>([]);
   const [mediaId, setMediaId] = useState<string | null>(null);
+  const [flowToken, setFlowToken] = useState<string | undefined>(undefined);
   const [isReady, setIsReady] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [liveValues, setLiveValues] = useState<Record<string, string>>({});
@@ -46,8 +48,7 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
       ["IMAGE", "VIDEO", "DOCUMENT"].includes(c.format ?? ""),
   );
 
-  const hasInputs = params.length > 0 || hasMediaInput;
-
+  const hasInputs = (params?.length ?? 0) > 0 || hasMediaInput;
   const preview = useMemo(() => {
     const result: any = {};
     for (const comp of template.components) {
@@ -112,10 +113,13 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
           value: mediaId,
         });
     }
+    const flowTokenEntry = entries.find(([key]) => key === "flow_token");
+    const GeneratedflowToken = flowTokenEntry?.[0] as string | undefined;
     setFinalParams(updatedParams);
+    setFlowToken(GeneratedflowToken);
     setIsReady(true);
   };
- 
+
   const isSubmitDisabled = hasMediaInput && !previewUrl;
 
   return (
@@ -235,7 +239,11 @@ const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
                 )}
               </div>
               <div className="p-4">
-                <ComposeStep params={finalParams} template={template} />
+                <ComposeStep
+                  params={finalParams}
+                  template={template}
+                  flowToken={flowToken}
+                />
               </div>
             </div>
           )}
@@ -332,6 +340,22 @@ const ComponentSection = ({
           );
         })}
       </FieldGroup>
+    );
+  }
+
+  if (
+    item.type === "BUTTONS"
+  ) {
+    return (
+      <div className="space-y-1.5">
+        <Label className="text-[11px] text-muted-foreground">Flow Token</Label>
+        <Input
+          name="flow_token"
+          placeholder="Enter flow token"
+          onChange={(e) => onChange("flow_token", e.target.value)}
+          required
+        />
+      </div>
     );
   }
 

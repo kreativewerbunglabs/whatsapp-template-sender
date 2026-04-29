@@ -24,7 +24,7 @@ interface ComposeStepProps {
 }
 
 const EditTemplate = ({ template, onBack }: ComposeStepProps) => {
- 
+  console.log(template);
 
   const [params, setParams] = useState<TemplateParam[]>([]);
   const [mediaId, setMediaId] = useState<string | null>(null);
@@ -344,7 +344,7 @@ const ComponentSection = ({
     );
   }
 
-  if (item.type === "BUTTONS") {
+  if (item.type === "BUTTONS" && item.buttons.some((btn:any)=>btn.type === "FLOW")) {
     return (
       <div className="space-y-1.5">
         <Label className="text-[11px] text-muted-foreground">Flow Token</Label>

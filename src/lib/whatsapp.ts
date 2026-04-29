@@ -258,9 +258,7 @@ export class WhatsAppService {
 
       return json;
     } catch (err: any) {
-      if (err?.message?.includes("Failed to fetch")) {
-        throw new Error("No internet connection. Please check your network.");
-      }
+      
 
       if (err?.name === "TypeError") {
         throw new Error("Network error. Unable to reach server.");
